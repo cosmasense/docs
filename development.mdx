@@ -1,94 +1,312 @@
 ---
-title: 'Development'
-description: 'Preview changes locally to update your docs'
+title: 'Backend Architecture'
+description: 'Understanding CosmaSense backend architecture and development'
 ---
 
 <Info>
   **Prerequisites**:
-  - Node.js version 19 or higher
-  - A docs repository with a `docs.json` file
+  - Python 3.8 or higher
+  - Basic understanding of async/await patterns
+  - SQLite3
 </Info>
 
-Follow these steps to install and run Mintlify on your operating system.
+## Architecture Overview
+
+CosmaSense uses a monorepo structure with three main packages:
+
+- **Backend** (`packages/cosma-backend`): Quart async web framework + Uvicorn
+- **TUI** (`packages/cosma-tui`): Textual framework for terminal UI
+- **CLI** (root): Click-based orchestrator
+
+All packages share dependencies via workspace configuration.
+
+## Tech Stack
+
+### Backend Framework
+
+| Component | Technology |
+|-----------|-----------|
+| Web Framework | Quart (async Flask) |
+| ASGI Server | Uvicorn |
+| Validation | QuartSchema |
+| Database | asqlite (async SQLite) |
+| File Watching | watchdog |
+
+### AI & Search
+
+| Component | Technology |
+|-----------|-----------|
+| Vector Search | sqlite-vec |
+| Keyword Search | FTS5 (Full-Text Search) |
+| LLM Backend | LiteLLM/Ollama |
+| Embeddings | sentence-transformers (e5-base-v2) |
+| File Parsing | MarkItDown (20+ formats) |
+
+## Processing Pipeline
+
+Files go through a 4-stage pipeline (see `pipeline.py:56-174`):
 
 <Steps>
-<Step title="Install the Mintlify CLI">
+<Step title="Discovery">
+Recursively scan directories and collect file metadata. Only files with modified timestamps different from the database are processed.
 
-```bash
-npm i -g mint
+```python
+# Skip logic checks modified time
+if file.modified_time == db_modified_time:
+    skip_file()
 ```
 </Step>
 
-<Step title="Preview locally">
+<Step title="Parsing">
+Extract text from 20+ file formats using MarkItDown. Calculate content hash to detect changes.
 
-Navigate to your docs directory where your `docs.json` file is located, and run the following command:
+**Supported formats:**
+- Documents: PDF, DOCX, TXT, MD
+- Images: PNG, JPG, GIF (with OCR)
+- Code: PY, JS, TS, JAVA, etc.
+- Spreadsheets: XLSX, CSV
 
-```bash
-mint dev
+```python
+# Hash check to detect content changes
+if calculate_hash(content) == db_hash:
+    skip_to_next_stage()
 ```
+</Step>
 
-A local preview of your documentation will be available at `http://localhost:3000`.
+<Step title="Summarization">
+AI generates:
+- Title
+- Summary (max 100 words)
+- 3-5 relevant keywords
 
+Uses LiteLLM or Ollama for local/cloud LLM support.
+</Step>
+
+<Step title="Embedding">
+Create 768-dimensional vectors using the e5-base-v2 model for semantic search.
+
+Embeddings stored in `file_embeddings` virtual table with triggers to keep in sync.
 </Step>
 </Steps>
 
-## Custom ports
+## Hybrid Search System
 
-By default, Mintlify uses port 3000. You can customize the port Mintlify runs on by using the `--port` flag. For example, to run Mintlify on port 3333, use this command:
+CosmaSense combines two search methods (see `searcher.py:91-220`):
+
+### Semantic Search (Vector Similarity)
+
+- Embeds query using same e5-base-v2 model
+- Calculates cosine similarity against file embeddings
+- Score: `exp(-distance)` scaled to 0-0.5 range
+
+### Keyword Search (FTS5)
+
+- SQLite FTS5 searches content/title/keywords
+- Uses BM25 ranking algorithm
+- Score: relevance scaled to 0-0.5 range
+
+### Combined Scoring
+
+```
+final_score = semantic_score + keyword_score
+```
+
+Results sorted by combined score in descending order.
+
+## Database Schema
+
+See `schema.sql` for full details:
+
+```sql
+-- Core file data
+CREATE TABLE files (
+  path TEXT PRIMARY KEY,
+  content TEXT,
+  title TEXT,
+  summary TEXT,
+  keywords TEXT,
+  hash TEXT,
+  status TEXT,
+  modified_time INTEGER
+);
+
+-- Vector search (sqlite-vec)
+CREATE VIRTUAL TABLE file_embeddings USING vec0(
+  embedding FLOAT[768]
+);
+
+-- Keyword search (FTS5)
+CREATE VIRTUAL TABLE files_fts USING fts5(
+  content, title, keywords
+);
+```
+
+Triggers keep all three tables synchronized automatically.
+
+## Async Programming in CosmaSense
+
+CosmaSense uses Python's async/await for non-blocking I/O operations.
+
+### Key Concepts
+
+<CodeGroup>
+
+```python Defining Async Functions
+# Use 'async def' to create async functions
+async def fetch_data():
+    result = await database.query()
+    return result
+
+# Call with 'await'
+data = await fetch_data()
+```
+
+```python Async Context Managers
+# Database connections use 'async with'
+async with app.db.acquire() as conn:
+    files = await conn.fetchall("SELECT * FROM files;")
+# Connection auto-closed after block
+```
+
+```python Running Sync Code in Async
+# For long-running sync functions
+import asyncio
+
+def slow_operation(data):
+    time.sleep(10)  # This would freeze async code
+    return process(data)
+
+# Correct way: run in thread pool
+result = await asyncio.to_thread(slow_operation, my_data)
+```
+
+</CodeGroup>
+
+<Warning>
+**Critical**: Never use `time.sleep()` in async functions! It will freeze the entire app. Use `await asyncio.sleep()` instead.
+</Warning>
+
+## Real-time Updates
+
+### Server-Sent Events (SSE)
+
+The backend uses SSE to push updates to the TUI:
+
+```python
+@app.route('/api/updates')
+async def updates_stream():
+    async for event in watch_file_changes():
+        yield f"data: {event}\n\n"
+```
+
+**Event types:**
+- `file_parsing`: File is being parsed
+- `file_summarizing`: AI is generating summary
+- `file_embedding`: Creating vector embedding
+- `file_complete`: File successfully indexed
+- `file_failed`: Error during processing
+
+### File Watching
+
+Uses `watchdog` library to monitor filesystem changes:
+
+```python
+# Auto-reindex when files change
+watcher.schedule(handler, path, recursive=True)
+```
+
+## Development Setup
+
+<Steps>
+<Step title="Clone Repository">
+```bash
+git clone https://github.com/your-org/cosmasense.git
+cd cosmasense
+```
+</Step>
+
+<Step title="Install Dependencies">
+```bash
+pip install -r requirements.txt
+
+# For development
+pip install -r requirements-dev.txt
+```
+</Step>
+
+<Step title="Run Backend">
+```bash
+# Start backend server (port 60534)
+cosma serve
+
+# Or with debug logging
+DEBUG=1 cosma serve
+```
+</Step>
+
+<Step title="Run TUI">
+```bash
+# In another terminal
+cosma search
+```
+</Step>
+</Steps>
+
+## Testing
 
 ```bash
-mint dev --port 3333
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=cosma_backend
+
+# Run specific test file
+pytest tests/test_pipeline.py
 ```
-
-If you attempt to run Mintlify on a port that's already in use, it will use the next available port:
-
-```md
-Port 3000 is already in use. Trying 3001 instead.
-```
-
-## Mintlify versions
-
-Please note that each CLI release is associated with a specific version of Mintlify. If your local preview does not align with the production version, please update the CLI:
-
-```bash
-npm mint update
-```
-
-## Validating links
-
-The CLI can assist with validating links in your documentation. To identify any broken links, use the following command:
-
-```bash
-mint broken-links
-```
-
-## Deployment
-
-If the deployment is successful, you should see the following:
-
-<Frame>
-  <img src="/images/checks-passed.png" alt="Screenshot of a deployment confirmation message that says All checks have passed." style={{ borderRadius: '0.5rem' }} />
-</Frame>
-
-## Code formatting
-
-We suggest using extensions on your IDE to recognize and format MDX. If you're a VSCode user, consider the [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) for syntax highlighting, and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) for code formatting.
 
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title='Error: Could not load the "sharp" module using the darwin-arm64 runtime'>
+  <Accordion title="RuntimeWarning: coroutine was never awaited">
+    You forgot to use `await` when calling an async function:
 
-    This may be due to an outdated version of node. Try the following:
-    1. Remove the currently-installed version of the CLI: `npm remove -g mint`
-    2. Upgrade to Node v19 or higher.
-    3. Reinstall the CLI: `npm i -g mint`
+    ```python
+    # Wrong
+    result = async_function()
+
+    # Correct
+    result = await async_function()
+    ```
   </Accordion>
 
-  <Accordion title="Issue: Encountering an unknown error">
-  
-    Solution: Go to the root of your device and delete the `~/.mintlify` folder. Then run `mint dev` again.
+  <Accordion title="App freezes during file processing">
+    You're running blocking code in an async function. Use `asyncio.to_thread()`:
+
+    ```python
+    # Wrong
+    async def process():
+        slow_operation()  # Blocks event loop
+
+    # Correct
+    async def process():
+        await asyncio.to_thread(slow_operation)
+    ```
+  </Accordion>
+
+  <Accordion title="Database locked errors">
+    Multiple async operations trying to write simultaneously. Use proper connection pooling:
+
+    ```python
+    async with app.db.acquire() as conn:
+        await conn.execute("INSERT ...")
+    ```
   </Accordion>
 </AccordionGroup>
 
-Curious about what changed in the latest CLI version? Check out the [CLI changelog](https://www.npmjs.com/package/mintlify?activeTab=versions).
+## Further Reading
+
+- [Quart Documentation](https://quart.palletsprojects.com/)
+- [Python Async I/O Guide](https://realpython.com/async-io-python/)
+- [SQLite FTS5 Documentation](https://www.sqlite.org/fts5.html)
+- [sqlite-vec GitHub](https://github.com/asg017/sqlite-vec)

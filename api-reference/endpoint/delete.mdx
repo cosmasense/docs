@@ -1,4 +1,118 @@
 ---
-title: 'Delete Plant'
-openapi: 'DELETE /plants/{id}'
+title: 'Get Watched Directories'
+api: 'GET /api/watched-directories'
 ---
+
+Retrieve a list of all directories currently being watched and indexed by CosmaSense.
+
+## Request
+
+No parameters required.
+
+## Request Example
+
+```bash cURL
+curl http://localhost:60534/api/watched-directories
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:60534/api/watched-directories')
+directories = response.json()['data']['directories']
+
+for dir in directories:
+    print(f"{dir['path']}: {dir['file_count']} files")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:60534/api/watched-directories');
+const data = await response.json();
+
+data.data.directories.forEach(dir => {
+  console.log(`${dir.path}: ${dir.file_count} files`);
+});
+```
+
+## Response
+
+<ResponseField name="status" type="string">
+  Status of the request: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="total_directories" type="number">
+      Total number of watched directories
+    </ResponseField>
+    <ResponseField name="directories" type="array">
+      Array of watched directory objects
+      <Expandable title="directory object">
+        <ResponseField name="path" type="string">
+          Absolute path to the watched directory
+        </ResponseField>
+        <ResponseField name="file_count" type="number">
+          Number of files discovered in this directory
+        </ResponseField>
+        <ResponseField name="indexed_count" type="number">
+          Number of files successfully indexed
+        </ResponseField>
+        <ResponseField name="failed_count" type="number">
+          Number of files that failed processing
+        </ResponseField>
+        <ResponseField name="status" type="string">
+          Current status: `indexing`, `complete`, or `error`
+        </ResponseField>
+        <ResponseField name="added_at" type="string">
+          ISO 8601 timestamp when directory was added
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Example
+
+```json 200 Success
+{
+  "status": "success",
+  "data": {
+    "total_directories": 2,
+    "directories": [
+      {
+        "path": "/Users/username/Downloads",
+        "file_count": 127,
+        "indexed_count": 125,
+        "failed_count": 2,
+        "status": "complete",
+        "added_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "path": "/Users/username/Documents",
+        "file_count": 543,
+        "indexed_count": 489,
+        "failed_count": 0,
+        "status": "indexing",
+        "added_at": "2024-01-15T14:22:00Z"
+      }
+    ]
+  }
+}
+```
+
+## Directory Status
+
+| Status | Description |
+|--------|-------------|
+| `indexing` | Currently processing files in this directory |
+| `complete` | All files have been processed (some may have failed) |
+| `error` | Critical error occurred with this directory |
+| `watching` | Monitoring for file changes (post-initial-index) |
+
+<Note>
+Directories continue to be watched even after initial indexing is complete. The backend monitors for file changes and automatically re-indexes modified or new files.
+</Note>
+
+<Tip>
+Use this endpoint to check indexing progress before running searches. Searches only return results for files that have been fully indexed.
+</Tip>

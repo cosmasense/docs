@@ -1,4 +1,187 @@
 ---
-title: 'New Plant'
-openapi: 'WEBHOOK /plant/webhook'
+title: 'Real-time Updates (SSE)'
+api: 'GET /api/updates'
 ---
+
+Stream real-time processing status updates via Server-Sent Events (SSE). Perfect for monitoring indexing progress in real-time.
+
+## Request
+
+No parameters required. This endpoint returns a long-lived SSE connection.
+
+## Request Example
+
+```bash cURL
+curl -N http://localhost:60534/api/updates
+```
+
+```python Python
+import requests
+import json
+
+response = requests.get(
+    'http://localhost:60534/api/updates',
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        decoded = line.decode('utf-8')
+        if decoded.startswith('data: '):
+            event = json.loads(decoded[6:])
+            print(f"[{event['type']}] {event['path']}")
+```
+
+```javascript JavaScript
+const eventSource = new EventSource('http://localhost:60534/api/updates');
+
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(`[${data.type}] ${data.path}`);
+};
+
+eventSource.onerror = (error) => {
+  console.error('SSE error:', error);
+  eventSource.close();
+};
+```
+
+## Event Format
+
+Each SSE event is sent in this format:
+
+```
+data: {"type": "file_parsing", "path": "/path/to/file.txt", "metadata": {...}}
+
+```
+
+## Event Types
+
+<ResponseField name="file_parsing" type="event">
+  File is being parsed by MarkItDown
+
+  <Expandable title="metadata">
+    <ResponseField name="file_size" type="number">
+      Size of file in bytes
+    </ResponseField>
+    <ResponseField name="file_type" type="string">
+      Detected file type/extension
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="file_summarizing" type="event">
+  AI is generating summary and keywords
+
+  <Expandable title="metadata">
+    <ResponseField name="content_length" type="number">
+      Length of parsed content in characters
+    </ResponseField>
+    <ResponseField name="llm_backend" type="string">
+      LLM backend being used: `ollama` or `openai`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="file_embedding" type="event">
+  Creating vector embedding for semantic search
+
+  <Expandable title="metadata">
+    <ResponseField name="model" type="string">
+      Embedding model: `e5-base-v2`
+    </ResponseField>
+    <ResponseField name="embedding_dim" type="number">
+      Dimension of embedding vector: `768`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="file_complete" type="event">
+  File successfully indexed and ready for search
+
+  <Expandable title="metadata">
+    <ResponseField name="total_time" type="number">
+      Total processing time in milliseconds
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      AI-generated title
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="file_failed" type="event">
+  Error occurred during processing
+
+  <Expandable title="metadata">
+    <ResponseField name="error" type="string">
+      Error message describing what went wrong
+    </ResponseField>
+    <ResponseField name="stage" type="string">
+      Pipeline stage where failure occurred
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Event Stream Example
+
+```
+data: {"type": "file_parsing", "path": "/Users/username/Downloads/report.pdf", "metadata": {"file_size": 1048576, "file_type": "pdf"}}
+
+data: {"type": "file_summarizing", "path": "/Users/username/Downloads/report.pdf", "metadata": {"content_length": 5234, "llm_backend": "ollama"}}
+
+data: {"type": "file_embedding", "path": "/Users/username/Downloads/report.pdf", "metadata": {"model": "e5-base-v2", "embedding_dim": 768}}
+
+data: {"type": "file_complete", "path": "/Users/username/Downloads/report.pdf", "metadata": {"total_time": 3245, "title": "Q4 Financial Report"}}
+
+data: {"type": "file_failed", "path": "/Users/username/Downloads/corrupted.xlsx", "metadata": {"error": "Unable to parse file: File is corrupted", "stage": "parsing"}}
+
+```
+
+## Use Cases
+
+### 1. Progress Monitoring (TUI)
+
+The TUI uses this endpoint to show real-time indexing status:
+
+```python
+async for event in sse_stream('/api/updates'):
+    status_bar.update(f"Processing: {event['path']}")
+```
+
+### 2. Custom Progress UI
+
+Build your own progress interface:
+
+```javascript
+const stats = {
+  parsing: 0,
+  summarizing: 0,
+  embedding: 0,
+  complete: 0,
+  failed: 0
+};
+
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  stats[data.type.replace('file_', '')]++;
+  updateProgressBar(stats);
+};
+```
+
+### 3. Error Monitoring
+
+Track and log failures:
+
+```python
+for event in sse_stream():
+    if event['type'] == 'file_failed':
+        logger.error(f"Failed to index {event['path']}: {event['metadata']['error']}")
+```
+
+<Warning>
+This is a long-lived HTTP connection. Make sure your HTTP client supports streaming responses and doesn't timeout on long connections.
+</Warning>
+
+<Tip>
+The TUI automatically subscribes to this endpoint and displays updates in the status bar. You can see real-time progress without polling.
+</Tip>

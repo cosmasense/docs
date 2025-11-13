@@ -1,4 +1,179 @@
 ---
-title: 'Get Plants'
-openapi: 'GET /plants'
+title: 'Search Files'
+api: 'GET /api/search/stream'
 ---
+
+Search indexed files using natural language queries with hybrid semantic and keyword search.
+
+## Request
+
+<ParamField query="query" type="string" required>
+  Natural language search query
+
+  Examples:
+  - "tax documents from 2023"
+  - "python code with API calls"
+  - "meeting notes about project roadmap"
+</ParamField>
+
+<ParamField query="limit" type="number" default="20">
+  Maximum number of results to return (1-100)
+</ParamField>
+
+<ParamField query="min_score" type="number" default="0.1">
+  Minimum combined score threshold (0.0-1.0)
+</ParamField>
+
+## Request Example
+
+```bash cURL
+curl "http://localhost:60534/api/search/stream?query=meeting+notes&limit=10"
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:60534/api/search/stream',
+    params={
+        'query': 'meeting notes',
+        'limit': 10,
+        'min_score': 0.2
+    }
+)
+
+for result in response.json()['data']['results']:
+    print(f"{result['title']}: {result['path']}")
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  query: 'meeting notes',
+  limit: 10,
+  min_score: 0.2
+});
+
+const response = await fetch(
+  `http://localhost:60534/api/search/stream?${params}`
+);
+
+const data = await response.json();
+data.data.results.forEach(result => {
+  console.log(`${result.title}: ${result.path}`);
+});
+```
+
+## Response
+
+<ResponseField name="status" type="string">
+  Status of the request: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="query" type="string">
+      The search query that was executed
+    </ResponseField>
+    <ResponseField name="total_results" type="number">
+      Total number of results found
+    </ResponseField>
+    <ResponseField name="results" type="array">
+      Array of search results sorted by score (descending)
+      <Expandable title="result object">
+        <ResponseField name="path" type="string">
+          Absolute path to the file
+        </ResponseField>
+        <ResponseField name="title" type="string">
+          AI-generated title for the file
+        </ResponseField>
+        <ResponseField name="summary" type="string">
+          AI-generated summary (max 100 words)
+        </ResponseField>
+        <ResponseField name="keywords" type="array">
+          Array of 3-5 relevant keywords
+        </ResponseField>
+        <ResponseField name="score" type="number">
+          Combined search score (0.0-1.0)
+          - Semantic score: 0.0-0.5
+          - Keyword score: 0.0-0.5
+        </ResponseField>
+        <ResponseField name="semantic_score" type="number">
+          Vector similarity score component
+        </ResponseField>
+        <ResponseField name="keyword_score" type="number">
+          FTS5 keyword match score component
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Example
+
+```json 200 Success
+{
+  "status": "success",
+  "data": {
+    "query": "meeting notes",
+    "total_results": 8,
+    "results": [
+      {
+        "path": "/Users/username/Documents/Q4-planning-meeting.md",
+        "title": "Q4 Planning Meeting Notes",
+        "summary": "Discussion of Q4 roadmap including feature priorities, resource allocation, and timeline adjustments. Key decisions on API redesign and mobile app launch.",
+        "keywords": ["planning", "Q4", "roadmap", "meeting", "decisions"],
+        "score": 0.89,
+        "semantic_score": 0.47,
+        "keyword_score": 0.42
+      },
+      {
+        "path": "/Users/username/Documents/standup-2024-01-15.txt",
+        "title": "Daily Standup - January 15",
+        "summary": "Team standup covering progress on authentication system, blockers with database migrations, and upcoming sprint planning meeting.",
+        "keywords": ["standup", "meeting", "progress", "blockers"],
+        "score": 0.73,
+        "semantic_score": 0.38,
+        "keyword_score": 0.35
+      }
+    ]
+  }
+}
+```
+
+```json 400 Invalid Query
+{
+  "status": "error",
+  "error": {
+    "code": "INVALID_QUERY",
+    "message": "Query must be at least 2 characters"
+  }
+}
+```
+
+## Search Algorithm
+
+CosmaSense uses a **hybrid search** approach combining:
+
+### 1. Semantic Search (Vector Similarity)
+- Embeds your query using e5-base-v2 model
+- Calculates cosine similarity against file embeddings
+- Score formula: `exp(-distance)` scaled to 0-0.5
+
+### 2. Keyword Search (FTS5)
+- SQLite FTS5 full-text search on content, title, and keywords
+- Uses BM25 ranking algorithm
+- Score scaled to 0-0.5 range
+
+### 3. Combined Scoring
+```
+final_score = semantic_score + keyword_score
+```
+
+This approach ensures:
+- **Semantic matches** for conceptually similar content
+- **Exact matches** for specific terms and phrases
+- **Best of both worlds** with additive scoring
+
+<Tip>
+The TUI automatically throttles search requests to 0.5 seconds to prevent excessive API calls while typing.
+</Tip>

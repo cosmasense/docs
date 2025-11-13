@@ -1,97 +1,95 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to CosmaSense"
+description: "AI-Powered Local File Search - Like Google for Your Files"
 ---
 
-## Setting up
+## What is CosmaSense?
 
-Get your documentation site up and running in minutes.
+CosmaSense is an open-source local file indexing and search engine that finds your files using natural language queries. It runs 100% locally on your device, giving you powerful semantic search capabilities without compromising your privacy.
+
+Think of it as **Google for your file system** - no more digging through folders or trying to remember exact filenames. Just search for what's in the file, and CosmaSense will find it.
 
 <Card
-  title="Start here"
+  title="Get started"
   icon="rocket"
   href="/quickstart"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Install CosmaSense and start searching your files in minutes.
 </Card>
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
+## Key Features
 
 <Columns cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
+    title="Hybrid Search"
+    icon="magnifying-glass"
+    href="/essentials/search"
+  >
+    Combines semantic (vector) and keyword (FTS5) search for the best results.
+  </Card>
+  <Card
+    title="AI-Powered Summaries"
+    icon="sparkles"
+    href="/essentials/ai-features"
+  >
+    Automatically generates titles, summaries, and keywords for your files.
+  </Card>
+  <Card
+    title="100% Local"
+    icon="shield"
+    href="/essentials/privacy"
+  >
+    All processing happens on your device. Your data never leaves your computer.
+  </Card>
+  <Card
+    title="Multiple Interfaces"
+    icon="terminal"
     href="/development"
   >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+    Available as a TUI (Terminal UI), CLI, and soon a native macOS app.
   </Card>
 </Columns>
 
-## Create beautiful pages
+## Supported File Types
 
-Everything you need to create world-class documentation.
+CosmaSense can parse and index over 20 file formats including:
+
+- Documents: PDF, DOCX, TXT, MD
+- Images: PNG, JPG, GIF (with OCR)
+- Code: Python, JavaScript, Java, and more
+- Spreadsheets: XLSX, CSV
+- And many more via MarkItDown
+
+## Technical Highlights
 
 <Columns cols={2}>
   <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
+    title="Backend Architecture"
+    icon="server"
+    href="/api-reference/introduction"
   >
-    Use MDX to style your docs pages.
+    Built with Quart async framework, SQLite with vector search, and sentence-transformers.
   </Card>
   <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
+    title="Real-time Updates"
+    icon="clock"
+    href="/development"
   >
-    Add sample code to demonstrate how to use your product.
+    Automatically watches directories and re-indexes files as they change.
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Smart Processing"
+    icon="brain"
+    href="/essentials/pipeline"
   >
-    Display images and other media.
+    4-stage pipeline: Discovery → Parsing → Summarization → Embedding
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Open Source"
+    icon="github"
+    href="https://github.com/your-org/cosmasense"
   >
-    Write once and reuse across your docs.
+    Available on GitHub under an open-source license.
   </Card>
 </Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>

@@ -14,8 +14,8 @@ Get CosmaSense installed and start searching your files in three simple steps.
     CosmaSense is currently available in alpha testing through GitHub.
 
     ```bash
-    git clone https://github.com/your-org/cosmasense.git
-    cd cosmasense
+    git clone https://github.com/cosmasense/cosma.git
+    cd cosma
     ```
 
     <Note>macOS app coming soon! Currently available as CLI and TUI.</Note>
@@ -106,10 +106,8 @@ cosma search
 ```
 
 ```bash API Search
-# Direct API search
-curl http://localhost:60534/api/search/stream \
-  -H "Content-Type: application/json" \
-  -d '{"query": "meeting notes"}'
+# Direct API search (GET request with query parameters)
+curl "http://localhost:60534/api/search/stream?query=meeting+notes&limit=10"
 ```
 
 ```bash Watch Directory
@@ -151,5 +149,5 @@ Now that CosmaSense is running, explore these topics:
 </CardGroup>
 
 <Note>
-  **Need help?** Check out our [GitHub issues](https://github.com/your-org/cosmasense/issues) or read the [development guide](/development).
+  **Need help?** Check out our [GitHub issues](https://github.com/cosmasense/cosma/issues) or read the [development guide](/development).
 </Note>

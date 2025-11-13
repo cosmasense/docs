@@ -53,12 +53,12 @@
       "anchors": [
         {
           "anchor": "GitHub",
-          "href": "https://github.com/your-org/cosmasense",
+          "href": "https://github.com/cosmasense/cosma",
           "icon": "github"
         },
         {
           "anchor": "Community",
-          "href": "https://github.com/your-org/cosmasense/discussions",
+          "href": "https://github.com/cosmasense/cosma/discussions",
           "icon": "comments"
         }
       ]
@@ -72,13 +72,13 @@
     "links": [
       {
         "label": "Issues",
-        "href": "https://github.com/your-org/cosmasense/issues"
+        "href": "https://github.com/cosmasense/cosma/issues"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Download",
-      "href": "https://github.com/your-org/cosmasense/releases"
+      "href": "https://github.com/cosmasense/cosma/releases"
     }
   },
   "contextual": {
@@ -95,7 +95,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/your-org/cosmasense"
+      "github": "https://github.com/cosmasense/cosma"
     }
   }
 }

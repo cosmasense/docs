@@ -1,43 +1,77 @@
-# Mintlify Starter Kit
+# CosmaSense Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+Official documentation for CosmaSense - an AI-powered local file search engine.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## About CosmaSense
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+CosmaSense is an open-source local file indexing and search engine that finds your files using natural language queries. It runs 100% locally on your device, giving you powerful semantic search capabilities without compromising your privacy.
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+**Think of it as Google for your file system.**
+
+### Key Features
+
+- 🔍 **Hybrid Search** - Combines semantic (vector) and keyword (FTS5) search
+- 🤖 **AI-Powered** - Automatically generates summaries and keywords
+- 🔒 **100% Local** - All processing happens on your device
+- ⚡ **Real-time** - Watches directories and auto-indexes changes
+- 📁 **20+ File Types** - PDF, DOCX, images, code, spreadsheets, and more
+
+### Repository Links
+
+- **Main Repository**: [cosmasense/cosma](https://github.com/cosmasense/cosma)
+- **Documentation Site**: [cosmasense/docs](https://github.com/cosmasense/docs)
 
 ## Development
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+This documentation is built with [Mintlify](https://mintlify.com).
 
-```
+### Local Preview
+
+Install the Mintlify CLI:
+
+```bash
 npm i -g mint
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+Run the preview server:
 
-```
+```bash
 mint dev
 ```
 
 View your local preview at `http://localhost:3000`.
 
-## Publishing changes
+### Publishing Changes
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+Changes pushed to the main branch are automatically deployed to production.
 
-## Need help?
+## Documentation Structure
 
-### Troubleshooting
+```
+.
+├── index.mdx                    # Homepage
+├── quickstart.mdx               # Installation guide
+├── development.mdx              # Backend architecture
+├── api-reference/               # API endpoints
+│   ├── introduction.mdx
+│   └── endpoint/
+│       ├── create.mdx          # Watch directory
+│       ├── get.mdx             # Search files
+│       ├── delete.mdx          # Get watched directories
+│       └── webhook.mdx         # SSE updates
+└── docs.json                   # Navigation config
+```
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+## Contributing
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+We welcome contributions! Please see our [contributing guidelines](https://github.com/cosmasense/cosma/blob/main/CONTRIBUTING.md).
+
+## License
+
+This documentation is open source under the MIT License.
+
+## Need Help?
+
+- 📖 [View Documentation](https://docs.cosmasense.com)
+- 🐛 [Report Issues](https://github.com/cosmasense/cosma/issues)
+- 💬 [Discussions](https://github.com/cosmasense/cosma/discussions)

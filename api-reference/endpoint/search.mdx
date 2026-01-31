@@ -1,0 +1,134 @@
+---
+title: 'Search Files'
+api: 'POST /api/search/'
+---
+
+Search indexed files using natural language queries with hybrid semantic and keyword search.
+
+## Request
+
+<ParamField body="query" type="string" required>
+  Natural language search query
+
+  Examples:
+  - "tax documents from 2023"
+  - "python code with API calls"
+  - "meeting notes about project roadmap"
+</ParamField>
+
+<ParamField body="directory" type="string">
+  Optional directory path to scope the search to
+</ParamField>
+
+<ParamField body="filters" type="object">
+  Optional key-value filters
+</ParamField>
+
+<ParamField body="limit" type="number" default="50">
+  Maximum number of results to return
+</ParamField>
+
+## Request Example
+
+```bash cURL
+curl -X POST http://localhost:60534/api/search/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "meeting notes",
+    "limit": 10
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:60534/api/search/',
+    json={
+        'query': 'meeting notes',
+        'directory': '/Users/username/Documents',
+        'limit': 10
+    }
+)
+
+for result in response.json()['results']:
+    print(f"{result['file']['filename']}: {result['relevance_score']}")
+```
+
+## Response
+
+<ResponseField name="results" type="array">
+  Array of search results sorted by relevance score (descending)
+  <Expandable title="result object">
+    <ResponseField name="file" type="object">
+      File metadata
+      <Expandable title="file fields">
+        <ResponseField name="file_path" type="string">
+          Absolute path to the file
+        </ResponseField>
+        <ResponseField name="filename" type="string">
+          File name
+        </ResponseField>
+        <ResponseField name="extension" type="string">
+          File extension
+        </ResponseField>
+        <ResponseField name="created" type="string">
+          ISO 8601 creation timestamp
+        </ResponseField>
+        <ResponseField name="modified" type="string">
+          ISO 8601 modification timestamp
+        </ResponseField>
+        <ResponseField name="accessed" type="string">
+          ISO 8601 last access timestamp
+        </ResponseField>
+        <ResponseField name="title" type="string | null">
+          AI-generated title
+        </ResponseField>
+        <ResponseField name="summary" type="string | null">
+          AI-generated summary
+        </ResponseField>
+        <ResponseField name="keywords" type="array | null">
+          AI-generated keywords
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="relevance_score" type="number">
+      Combined search relevance score (higher is better)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Example
+
+```json 200 Success
+{
+  "results": [
+    {
+      "file": {
+        "file_path": "/Users/username/Documents/Q4-planning.md",
+        "filename": "Q4-planning.md",
+        "extension": "md",
+        "created": "2025-01-15T10:30:00",
+        "modified": "2025-01-15T14:22:00",
+        "accessed": "2025-01-15T14:22:00",
+        "title": "Q4 Planning Meeting Notes",
+        "summary": "Discussion of Q4 roadmap including feature priorities and timeline.",
+        "keywords": ["planning", "Q4", "roadmap", "meeting"]
+      },
+      "relevance_score": 0.89
+    }
+  ]
+}
+```
+
+## Search Algorithm
+
+CosmaSense uses a **hybrid search** combining:
+
+1. **Semantic Search** (Vector Similarity) - embeds query using e5-base-v2, calculates cosine similarity
+2. **Keyword Search** (FTS5) - SQLite full-text search with BM25 ranking
+3. **Combined Score** = semantic_score + keyword_score
+
+<Note>
+Search is a POST request with a JSON body, not a GET with query parameters.
+</Note>

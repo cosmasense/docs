@@ -58,9 +58,9 @@ Get CosmaSense installed and start searching your files in three simple steps.
 
     ```bash
     # Watch a directory (e.g., Downloads)
-    curl -X POST http://localhost:60534/api/watch/directory \
+    curl -X POST http://localhost:60534/api/watch/ \
       -H "Content-Type: application/json" \
-      -d '{"path": "/Users/yourname/Downloads"}'
+      -d '{"directory_path": "/Users/yourname/Downloads"}'
     ```
 
     CosmaSense will automatically:
@@ -106,20 +106,22 @@ cosma search
 ```
 
 ```bash API Search
-# Direct API search (GET request with query parameters)
-curl "http://localhost:60534/api/search/stream?query=meeting+notes&limit=10"
+# Direct API search (POST request with JSON body)
+curl -X POST http://localhost:60534/api/search/ \
+  -H "Content-Type: application/json" \
+  -d '{"query": "meeting notes", "limit": 10}'
 ```
 
 ```bash Watch Directory
 # Add a new directory to watch
-curl -X POST http://localhost:60534/api/watch/directory \
+curl -X POST http://localhost:60534/api/watch/ \
   -H "Content-Type: application/json" \
-  -d '{"path": "/path/to/directory"}'
+  -d '{"directory_path": "/path/to/directory"}'
 ```
 
-```bash Get Watched Directories
-# List all watched directories
-curl http://localhost:60534/api/watched-directories
+```bash Get Watch Jobs
+# List all watch jobs
+curl http://localhost:60534/api/watch/jobs
 ```
 
 </CodeGroup>

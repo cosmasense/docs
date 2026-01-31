@@ -1,0 +1,159 @@
+---
+title: 'Filters'
+description: 'Configure file inclusion and exclusion patterns'
+---
+
+The filter system controls which files get indexed. It supports two modes: **blacklist** (exclude matching files) and **whitelist** (only include matching files). Patterns use glob syntax.
+
+## Get Filter Config
+
+**`GET /api/filters/config`**
+
+```bash cURL
+curl http://localhost:60534/api/filters/config
+```
+
+### Response
+
+```json 200 Success
+{
+  "version": 2,
+  "mode": "blacklist",
+  "exclude": ["*.tmp", "node_modules/**"],
+  "include": [],
+  "blacklist_exclude": ["*.tmp", "node_modules/**"],
+  "blacklist_include": [],
+  "whitelist_include": ["*.pdf", "*.docx", "*.md"],
+  "whitelist_exclude": [],
+  "config_path": "/Users/username/Library/Application Support/cosma/filter.toml"
+}
+```
+
+### Fields
+
+| Field | Description |
+|-------|-------------|
+| `mode` | `"blacklist"` or `"whitelist"` |
+| `exclude` / `include` | Active patterns for current mode (legacy fields) |
+| `blacklist_exclude` / `blacklist_include` | Patterns stored for blacklist mode |
+| `whitelist_include` / `whitelist_exclude` | Patterns stored for whitelist mode |
+
+<Note>
+Mode-specific pattern storage prevents data loss when switching between blacklist and whitelist modes.
+</Note>
+
+---
+
+## Update Filter Config
+
+**`PUT /api/filters/config`**
+
+Update the filter configuration. All fields are optional.
+
+<ParamField body="mode" type="string">
+  `"blacklist"` or `"whitelist"`
+</ParamField>
+
+<ParamField body="apply_immediately" type="boolean" default="true">
+  If true, immediately remove newly-excluded files from the index
+</ParamField>
+
+```bash cURL
+curl -X PUT http://localhost:60534/api/filters/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "blacklist",
+    "blacklist_exclude": ["*.tmp", "*.log", "node_modules/**"],
+    "apply_immediately": true
+  }'
+```
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Filter configuration updated successfully",
+  "config": { ... },
+  "removed_count": 15
+}
+```
+
+---
+
+## Add Pattern
+
+**`POST /api/filters/pattern`**
+
+Add a single pattern to the filter config.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/filters/pattern \
+  -H "Content-Type: application/json" \
+  -d '{"pattern": "*.log", "pattern_type": "exclude"}'
+```
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Added exclude pattern: *.log",
+  "removed_count": 3
+}
+```
+
+---
+
+## Remove Pattern
+
+**`DELETE /api/filters/pattern`**
+
+Remove a pattern from the filter config.
+
+```bash cURL
+curl -X DELETE http://localhost:60534/api/filters/pattern \
+  -H "Content-Type: application/json" \
+  -d '{"pattern": "*.log", "pattern_type": "exclude"}'
+```
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Removed exclude pattern: *.log"
+}
+```
+
+---
+
+## Apply Filter Changes
+
+**`POST /api/filters/apply`**
+
+Trigger cleanup of excluded files. Use after updating config with `apply_immediately: false`.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/filters/apply
+```
+
+---
+
+## Get Default Config
+
+**`GET /api/filters/defaults`**
+
+Returns the default filter patterns without loading from file.
+
+```bash cURL
+curl http://localhost:60534/api/filters/defaults
+```
+
+---
+
+## Reset to Defaults
+
+**`POST /api/filters/reset`**
+
+Reset filter config to defaults and clean up excluded files.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/filters/reset
+```

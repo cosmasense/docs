@@ -38,12 +38,39 @@
             ]
           },
           {
-            "group": "Endpoints",
+            "group": "Watch & Index",
             "pages": [
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/endpoint/watch",
+              "api-reference/endpoint/index",
+              "api-reference/endpoint/jobs"
+            ]
+          },
+          {
+            "group": "Search & Files",
+            "pages": [
+              "api-reference/endpoint/search",
+              "api-reference/endpoint/files"
+            ]
+          },
+          {
+            "group": "Queue & Scheduler",
+            "pages": [
+              "api-reference/endpoint/queue",
+              "api-reference/endpoint/scheduler",
+              "api-reference/endpoint/metrics"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api-reference/endpoint/filters",
+              "api-reference/endpoint/settings"
+            ]
+          },
+          {
+            "group": "Real-time",
+            "pages": [
+              "api-reference/endpoint/updates"
             ]
           }
         ]

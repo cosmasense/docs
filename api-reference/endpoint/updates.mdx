@@ -1,0 +1,140 @@
+---
+title: 'Real-time Updates (SSE)'
+api: 'GET /api/updates'
+---
+
+Stream real-time processing status updates via Server-Sent Events (SSE).
+
+## Request
+
+No parameters required. This endpoint returns a long-lived SSE connection.
+
+<Note>
+The request must include `Accept: text/event-stream` header.
+</Note>
+
+## Request Example
+
+```bash cURL
+curl -N -H "Accept: text/event-stream" http://localhost:60534/api/updates
+```
+
+```python Python
+import requests
+import json
+
+response = requests.get(
+    'http://localhost:60534/api/updates',
+    headers={'Accept': 'text/event-stream'},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        decoded = line.decode('utf-8')
+        if decoded.startswith('data: '):
+            event = json.loads(decoded[6:])
+            print(f"[{event['opcode']}] {event['data']}")
+```
+
+```javascript JavaScript
+const eventSource = new EventSource('http://localhost:60534/api/updates');
+
+eventSource.addEventListener('update', (event) => {
+  const data = JSON.parse(event.data);
+  console.log(`[${data.opcode}]`, data.data);
+});
+```
+
+## Event Format
+
+Each SSE event is sent as an `update` event type:
+
+```
+event: update
+data: {"opcode": "file_parsing", "data": {"path": "/path/to/file.txt", "filename": "file.txt"}}
+
+```
+
+The `data` field is a JSON object with:
+- `opcode`: The event type (see table below)
+- `data`: Event-specific payload
+
+## All Event Opcodes
+
+### File Processing Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `file_parsing` | `path`, `filename` | File content extraction started |
+| `file_parsed` | `path`, `filename` | Content extraction complete |
+| `file_summarizing` | `path`, `filename` | AI summarization started |
+| `file_summarized` | `path`, `filename` | Summarization complete |
+| `file_embedding` | `path`, `filename` | Vector embedding started |
+| `file_embedded` | `path`, `filename` | Embedding complete |
+| `file_complete` | `path`, `filename` | File fully indexed |
+| `file_failed` | `path`, `filename`, `error` | Processing error |
+| `file_skipped` | `path`, `filename`, `reason` | File skipped |
+
+### File System Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `file_created` | `path` | New file detected |
+| `file_modified` | `path` | File content changed |
+| `file_deleted` | `path` | File removed |
+| `file_moved` | `src_path`, `dest_path` | File renamed/moved |
+| `directory_deleted` | `path` | Directory removed |
+| `directory_moved` | `src_path`, `dest_path` | Directory renamed/moved |
+
+### Watch Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `watch_started` | `path`, `recursive` | Watcher started for directory |
+| `watch_added` | `path` | Directory added to watch list |
+| `watch_removed` | `path` | Directory removed from watch list |
+
+### Directory Processing Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `directory_processing_started` | `path` | Initial scan started |
+| `directory_processing_completed` | `path` | Initial scan finished |
+
+### Queue Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `queue_item_added` | `id`, `file_path`, `action`, `status` | Item added to queue |
+| `queue_item_updated` | `id`, `file_path`, `action`, `status` | Item cooldown reset |
+| `queue_item_processing` | `id`, `file_path`, `action`, `status` | Processing started |
+| `queue_item_completed` | `id`, `file_path`, `action`, `status` | Processing succeeded |
+| `queue_item_failed` | `id`, `file_path`, `action`, `error` | Processing failed permanently |
+| `queue_item_removed` | `id`, `file_path`, `action`, `status` | Item removed from queue |
+| `queue_paused` | `source` | Queue manually paused |
+| `queue_resumed` | `source` | Queue manually resumed |
+
+### Scheduler Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `scheduler_paused` | | Queue paused by scheduler |
+| `scheduler_resumed` | | Queue resumed by scheduler |
+
+### General Events
+
+| Opcode | Data Fields | Description |
+|--------|------------|-------------|
+| `status_update` | varies | General status update |
+| `error` | `message` | Backend error |
+| `info` | `message` | Informational message |
+| `shutting_down` | | Backend is shutting down (connection will close) |
+
+## Keep-alive
+
+The server sends SSE comments (`: keepalive`) every 15 seconds if there are no events. This prevents proxy/browser timeouts.
+
+<Warning>
+This is a long-lived HTTP connection. Ensure your client supports streaming responses and doesn't timeout.
+</Warning>

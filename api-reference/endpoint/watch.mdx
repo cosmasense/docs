@@ -1,0 +1,81 @@
+---
+title: 'Watch Directory'
+api: 'POST /api/watch/'
+---
+
+Add a directory to the watch list. The backend will start indexing all files within it and monitor for changes.
+
+## Request
+
+<ParamField body="directory_path" type="string" required>
+  Absolute path to the directory to watch and index
+
+  Example: `/Users/username/Downloads`
+</ParamField>
+
+## Request Example
+
+```bash cURL
+curl -X POST http://localhost:60534/api/watch/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "directory_path": "/Users/username/Downloads"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:60534/api/watch/',
+    json={'directory_path': '/Users/username/Downloads'}
+)
+
+print(response.json())
+```
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Whether the watch was started successfully
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable status message
+</ResponseField>
+
+<ResponseField name="files_indexed" type="number">
+  Number of files indexed (0 on initial request since indexing is async)
+</ResponseField>
+
+## Response Example
+
+```json 201 Success
+{
+  "success": true,
+  "message": "Started watching directory: /Users/username/Downloads",
+  "files_indexed": 0
+}
+```
+
+```json 400 Already Watching
+{
+  "success": false,
+  "message": "Directory '/Users/username/Downloads' is already being watched",
+  "files_indexed": 0
+}
+```
+
+## Behavior
+
+When you watch a directory:
+
+1. **Duplicate Check**: Verifies this directory (or a parent) isn't already watched
+2. **Database Entry**: Adds directory to `watched_directories` table
+3. **File Watcher**: Starts monitoring filesystem for changes via watchdog
+4. **Initial Scan**: Recursively processes all files through the 4-stage pipeline
+5. **Queue Integration**: Subsequent file changes are routed through the indexing queue with debounce
+
+<Note>
+The indexing process runs asynchronously. Use the `/api/updates` endpoint to monitor progress in real-time.
+</Note>

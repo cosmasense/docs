@@ -192,19 +192,22 @@ result = await asyncio.to_thread(slow_operation, my_data)
 
 The backend uses SSE to push updates to the TUI:
 
-```python
-@app.route('/api/updates')
-async def updates_stream():
-    async for event in watch_file_changes():
-        yield f"data: {event}\n\n"
+```
+event: update
+data: {"opcode": "file_parsing", "data": {"path": "/path/to/file.txt", "filename": "file.txt"}}
 ```
 
-**Event types:**
-- `file_parsing`: File is being parsed
-- `file_summarizing`: AI is generating summary
-- `file_embedding`: Creating vector embedding
-- `file_complete`: File successfully indexed
-- `file_failed`: Error during processing
+Events are published via an internal Hub and streamed to clients as SSE `update` events. Each event has an `opcode` and a `data` payload.
+
+**Event categories:**
+- **File processing**: `file_parsing`, `file_parsed`, `file_summarizing`, `file_summarized`, `file_embedding`, `file_embedded`, `file_complete`, `file_failed`, `file_skipped`
+- **File system**: `file_created`, `file_modified`, `file_deleted`, `file_moved`, `directory_deleted`, `directory_moved`
+- **Queue**: `queue_item_added`, `queue_item_updated`, `queue_item_processing`, `queue_item_completed`, `queue_item_failed`, `queue_item_removed`, `queue_paused`, `queue_resumed`
+- **Scheduler**: `scheduler_paused`, `scheduler_resumed`
+- **Watch**: `watch_started`, `watch_added`, `watch_removed`
+- **General**: `status_update`, `error`, `info`, `shutting_down`
+
+See the [Real-time Updates API reference](/api-reference/endpoint/updates) for full details.
 
 ### File Watching
 

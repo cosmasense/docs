@@ -1,0 +1,91 @@
+---
+title: 'Files & Stats'
+description: 'Retrieve file metadata and statistics'
+---
+
+## Get File Statistics
+
+**`GET /api/files/stats`**
+
+Get aggregate statistics about all indexed files.
+
+```bash cURL
+curl http://localhost:60534/api/files/stats
+```
+
+### Response
+
+<ResponseField name="total_files" type="number">
+  Total number of indexed files
+</ResponseField>
+
+<ResponseField name="total_size" type="number">
+  Total size in bytes (currently returns 0, tracking in progress)
+</ResponseField>
+
+<ResponseField name="file_types" type="object">
+  Map of file extension to count
+</ResponseField>
+
+<ResponseField name="last_indexed" type="string | null">
+  ISO 8601 timestamp of the most recently indexed file
+</ResponseField>
+
+```json 200 Success
+{
+  "total_files": 342,
+  "total_size": 0,
+  "file_types": {},
+  "last_indexed": null
+}
+```
+
+---
+
+## Get File by ID
+
+**`GET /api/files/{file_id}`**
+
+Retrieve metadata for a specific file by its database ID.
+
+```bash cURL
+curl http://localhost:60534/api/files/1
+```
+
+### Response
+
+```json 200 Success
+{
+  "id": 1,
+  "filename": "report.pdf",
+  "extension": "pdf",
+  "created": "2025-01-15T10:30:00",
+  "modified": "2025-01-15T14:22:00",
+  "summary": "Quarterly financial report covering Q4 revenue and expenses.",
+  "keywords": null
+}
+```
+
+```json 404 Not Found
+{
+  "error": "File not found"
+}
+```
+
+---
+
+## Get Status
+
+**`GET /api/status/`**
+
+Check backend health and active job count.
+
+```bash cURL
+curl http://localhost:60534/api/status/
+```
+
+```json 200 Success
+{
+  "jobs": 2
+}
+```

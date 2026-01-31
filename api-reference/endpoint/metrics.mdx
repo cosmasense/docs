@@ -1,0 +1,46 @@
+---
+title: 'System Metrics'
+description: 'Current system metrics used by the scheduler'
+---
+
+## Get System Metrics
+
+**`GET /api/queue/metrics`**
+
+Returns current system metrics collected via psutil and macOS CLI tools.
+
+```bash cURL
+curl http://localhost:60534/api/queue/metrics
+```
+
+### Response
+
+```json 200 Success
+{
+  "metrics": {
+    "battery_level": 72,
+    "power_source_plugged": true,
+    "cpu_percent": 34.5,
+    "cpu_idle_seconds": 300.0,
+    "cpu_temperature": null,
+    "fan_speed": null,
+    "collected_at": 1705312200.0
+  }
+}
+```
+
+### Metric Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `battery_level` | number \| null | Battery percentage (0-100), null if no battery |
+| `power_source_plugged` | boolean \| null | Whether AC power is connected |
+| `cpu_percent` | number \| null | CPU usage percentage |
+| `cpu_idle_seconds` | number \| null | Seconds since last significant CPU activity |
+| `cpu_temperature` | number \| null | CPU temperature in Celsius (macOS only, requires `osx-cpu-temp`) |
+| `fan_speed` | number \| null | Fan speed in RPM (macOS only, requires `istats`) |
+| `collected_at` | number | Unix timestamp when metrics were collected |
+
+<Note>
+Temperature and fan speed require optional macOS CLI tools (`osx-cpu-temp`, `istats`). They return `null` if unavailable.
+</Note>

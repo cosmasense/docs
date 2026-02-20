@@ -1,0 +1,62 @@
+---
+title: 'Force Index'
+description: 'Manually trigger indexing for directories or files'
+---
+
+## Index Directory
+
+<ParamField body="directory_path" type="string" required>
+  Absolute path to the directory to re-index
+</ParamField>
+
+**`POST /api/index/directory`**
+
+Force re-index all files in a directory, bypassing the normal watcher flow.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/index/directory \
+  -H "Content-Type: application/json" \
+  -d '{"directory_path": "/Users/username/Documents"}'
+```
+
+### Response
+
+```json 201 Success
+{
+  "success": true,
+  "message": "Started indexing directory: /Users/username/Documents",
+  "files_indexed": 0
+}
+```
+
+---
+
+## Index File
+
+<ParamField body="file_path" type="string" required>
+  Absolute path to the file to index
+</ParamField>
+
+**`POST /api/index/file`**
+
+Index a single file directly through the pipeline.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/index/file \
+  -H "Content-Type: application/json" \
+  -d '{"file_path": "/Users/username/Documents/report.pdf"}'
+```
+
+### Response
+
+```json 201 Success
+{
+  "success": true,
+  "message": "Successfully indexed file: /Users/username/Documents/report.pdf",
+  "file_id": null
+}
+```
+
+<Note>
+Both endpoints return 201 and process asynchronously. Monitor progress via the `/api/updates` SSE stream.
+</Note>

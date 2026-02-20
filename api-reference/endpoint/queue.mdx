@@ -1,0 +1,168 @@
+---
+title: 'Indexing Queue'
+description: 'Control the file indexing queue'
+---
+
+The indexing queue sits between the file watcher and the processing pipeline. File changes are debounced through a cooldown period before being processed. The queue supports manual and scheduler-driven pause/resume.
+
+## Get Queue Status
+
+**`GET /api/queue/status`**
+
+```bash cURL
+curl http://localhost:60534/api/queue/status
+```
+
+### Response
+
+<ResponseField name="paused" type="boolean">
+  Whether the queue is paused (manual OR scheduler)
+</ResponseField>
+
+<ResponseField name="manually_paused" type="boolean">
+  Whether the queue was manually paused via API
+</ResponseField>
+
+<ResponseField name="scheduler_paused" type="boolean">
+  Whether the queue was paused by the scheduler
+</ResponseField>
+
+<ResponseField name="total_items" type="number">
+  Total items in the queue
+</ResponseField>
+
+<ResponseField name="cooling_down" type="number">
+  Items waiting for cooldown to expire
+</ResponseField>
+
+<ResponseField name="ready" type="number">
+  Items ready to be processed
+</ResponseField>
+
+<ResponseField name="processing" type="number">
+  Items currently being processed
+</ResponseField>
+
+```json 200 Success
+{
+  "paused": false,
+  "manually_paused": false,
+  "scheduler_paused": false,
+  "total_items": 5,
+  "cooling_down": 3,
+  "ready": 1,
+  "processing": 1
+}
+```
+
+---
+
+## Pause Queue
+
+**`POST /api/queue/pause`**
+
+Manually pause the queue. Items will continue to be enqueued but won't be processed until resumed.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/queue/pause
+```
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Queue paused"
+}
+```
+
+---
+
+## Resume Queue
+
+**`POST /api/queue/resume`**
+
+Resume a manually paused queue.
+
+```bash cURL
+curl -X POST http://localhost:60534/api/queue/resume
+```
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Queue resumed"
+}
+```
+
+<Note>
+If the scheduler has also paused the queue, resuming manually won't start processing until the scheduler conditions are also met.
+</Note>
+
+---
+
+## List Queue Items
+
+**`GET /api/queue/items`**
+
+Get all items currently in the queue.
+
+```bash cURL
+curl http://localhost:60534/api/queue/items
+```
+
+### Response
+
+```json 200 Success
+{
+  "items": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "file_path": "/Users/username/Documents/report.pdf",
+      "action": "index",
+      "status": "cooling_down",
+      "enqueued_at": 1705312200.0,
+      "cooldown_expires_at": 1705312260.0,
+      "dest_path": null,
+      "retry_count": 0
+    }
+  ]
+}
+```
+
+### Queue Item Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | UUID of the queue item |
+| `file_path` | string | Absolute path to the file |
+| `action` | string | `"index"`, `"delete"`, or `"move"` |
+| `status` | string | `"cooling_down"`, `"ready"`, or `"processing"` |
+| `enqueued_at` | number | Unix timestamp when item was enqueued |
+| `cooldown_expires_at` | number | Unix timestamp when cooldown expires |
+| `dest_path` | string \| null | Destination path for move actions |
+| `retry_count` | number | Number of failed processing attempts |
+
+---
+
+## Remove Queue Item
+
+**`DELETE /api/queue/items/{item_id}`**
+
+Remove an item from the queue by its UUID.
+
+```bash cURL
+curl -X DELETE http://localhost:60534/api/queue/items/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Item removed"
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "message": "Item not found"
+}
+```

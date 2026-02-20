@@ -5,7 +5,7 @@ description: 'CosmaSense Backend API Documentation'
 
 ## Welcome
 
-The CosmaSense backend exposes a RESTful API for managing file indexing and search operations. The backend runs on port `60534` by default.
+The CosmaSense backend exposes a RESTful API for managing file indexing, search, queue control, and real-time updates. The backend runs on port `60534` by default.
 
 **Base URL:** `http://localhost:60534`
 
@@ -22,86 +22,76 @@ cosma serve
 Test the connection:
 
 ```bash
-curl http://localhost:60534/api/health
+curl http://localhost:60534/api/status/
 ```
 
-## Core Endpoints
+## Endpoint Groups
 
 <CardGroup cols={2}>
 
-<Card title="Watch Directory" icon="folder-open" href="/api-reference/endpoint/create">
+<Card title="Watch Directory" icon="folder-open" href="/api-reference/endpoint/watch">
   Add a directory to the watch list and start indexing
 </Card>
 
-<Card title="Search Files" icon="magnifying-glass" href="/api-reference/endpoint/get">
+<Card title="Search Files" icon="magnifying-glass" href="/api-reference/endpoint/search">
   Search indexed files using natural language queries
 </Card>
 
-<Card title="Get Watched Directories" icon="list" href="/api-reference/endpoint/delete">
-  List all directories currently being watched
+<Card title="Watch Jobs" icon="list" href="/api-reference/endpoint/jobs">
+  List and manage watched directory jobs
 </Card>
 
-<Card title="Real-time Updates" icon="bolt" href="/api-reference/endpoint/webhook">
+<Card title="Queue Control" icon="layer-group" href="/api-reference/endpoint/queue">
+  Pause, resume, and inspect the indexing queue
+</Card>
+
+<Card title="Scheduler" icon="clock" href="/api-reference/endpoint/scheduler">
+  Configure automatic pause/resume based on system conditions
+</Card>
+
+<Card title="Real-time Updates" icon="bolt" href="/api-reference/endpoint/updates">
   Stream processing status updates via Server-Sent Events
 </Card>
 
+<Card title="Filters" icon="filter" href="/api-reference/endpoint/filters">
+  Configure file inclusion/exclusion patterns
+</Card>
+
+<Card title="Settings" icon="gear" href="/api-reference/endpoint/settings">
+  Read and update application settings
+</Card>
+
 </CardGroup>
-
-## Response Format
-
-All API responses follow a consistent JSON format:
-
-```json
-{
-  "status": "success",
-  "data": { ... },
-  "error": null
-}
-```
-
-Error responses:
-
-```json
-{
-  "status": "error",
-  "data": null,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid directory path"
-  }
-}
-```
 
 ## Data Flow
 
 ```mermaid
 graph LR
-    A[Client] -->|POST /api/watch/directory| B[Backend]
-    B -->|Start Indexing| C[Pipeline]
+    A[Client] -->|POST /api/watch/| B[Backend]
+    B -->|File Events| Q[Indexing Queue]
+    Q -->|Debounce + Cooldown| C[Pipeline]
     C -->|Discovery| D[File Scanner]
     C -->|Parsing| E[MarkItDown]
     C -->|Summarization| F[LLM]
     C -->|Embedding| G[e5-base-v2]
     G -->|Store| H[(SQLite)]
-    A -->|GET /api/search/stream| H
+    A -->|POST /api/search/| H
     H -->|Results| A
+    Q -->|SSE Events| A
 ```
-
-## Rate Limiting
-
-The backend does not implement rate limiting as it's designed for local use only. However, the TUI implements client-side throttling (0.5s) for search queries to reduce unnecessary API calls.
 
 ## File Processing States
 
-When files are being indexed, they go through several states:
+When files are being indexed, they go through several states reported via SSE:
 
-| State | Description |
-|-------|-------------|
-| `pending` | File discovered, waiting to be processed |
-| `parsing` | Extracting content from file |
-| `summarizing` | AI generating summary and keywords |
-| `embedding` | Creating vector embedding |
-| `complete` | Successfully indexed |
-| `failed` | Error during processing |
+| State | SSE Opcode | Description |
+|-------|-----------|-------------|
+| Queued | `queue_item_added` | File added to indexing queue, waiting for cooldown |
+| Processing | `queue_item_processing` | Cooldown expired, processing started |
+| Parsing | `file_parsing` | Extracting content from file |
+| Summarizing | `file_summarizing` | AI generating summary and keywords |
+| Embedding | `file_embedding` | Creating vector embedding |
+| Complete | `file_complete` | Successfully indexed |
+| Failed | `file_failed` | Error during processing |
 
-You can monitor these states in real-time using the `/api/updates` SSE endpoint.
+Monitor these states in real-time using the `/api/updates` SSE endpoint.

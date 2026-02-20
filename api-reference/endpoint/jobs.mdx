@@ -1,0 +1,102 @@
+---
+title: 'Watch Jobs'
+description: 'List and manage watched directory jobs'
+---
+
+## List All Jobs
+
+**`GET /api/watch/jobs`**
+
+Retrieve all watched directories (active and inactive).
+
+```bash cURL
+curl http://localhost:60534/api/watch/jobs
+```
+
+### Response
+
+```json 200 Success
+{
+  "jobs": [
+    {
+      "id": 1,
+      "path": "/Users/username/Downloads",
+      "is_active": true,
+      "recursive": true,
+      "file_pattern": null,
+      "last_scan": "2025-01-15T10:30:00",
+      "created_at": "2025-01-15T10:30:00",
+      "updated_at": "2025-01-15T14:22:00"
+    }
+  ]
+}
+```
+
+### Job Fields
+
+<ResponseField name="id" type="number">
+  Unique job identifier
+</ResponseField>
+
+<ResponseField name="path" type="string">
+  Absolute path to the watched directory
+</ResponseField>
+
+<ResponseField name="is_active" type="boolean">
+  Whether the job is currently active
+</ResponseField>
+
+<ResponseField name="recursive" type="boolean">
+  Whether subdirectories are watched
+</ResponseField>
+
+<ResponseField name="file_pattern" type="string | null">
+  Optional glob pattern filter (e.g. `"*.pdf"`)
+</ResponseField>
+
+<ResponseField name="last_scan" type="string | null">
+  ISO 8601 timestamp of the last scan
+</ResponseField>
+
+<ResponseField name="created_at" type="string | null">
+  ISO 8601 timestamp when the job was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="string | null">
+  ISO 8601 timestamp when the job was last updated
+</ResponseField>
+
+---
+
+## Delete Job
+
+**`DELETE /api/watch/jobs/{job_id}`**
+
+Stop watching a directory and remove all indexed files for it.
+
+```bash cURL
+curl -X DELETE http://localhost:60534/api/watch/jobs/1
+```
+
+### Response
+
+```json 200 Success
+{
+  "success": true,
+  "message": "Successfully deleted watched directory: /Users/username/Downloads",
+  "job_id": 1
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "message": "Watched directory with ID 99 not found",
+  "job_id": 99
+}
+```
+
+This will:
+1. Stop the active watcher job (if running)
+2. Delete all indexed files for this directory from the database
+3. Remove the watched directory record

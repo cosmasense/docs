@@ -1,0 +1,98 @@
+---
+title: 'Scheduler'
+description: 'Automatic queue pause/resume based on system conditions'
+---
+
+The scheduler monitors system conditions (battery, CPU, temperature, time) and automatically pauses or resumes the indexing queue based on configurable rules.
+
+## Get Scheduler Config
+
+**`GET /api/queue/scheduler`**
+
+```bash cURL
+curl http://localhost:60534/api/queue/scheduler
+```
+
+### Response
+
+<ResponseField name="enabled" type="boolean">
+  Whether the scheduler is active
+</ResponseField>
+
+<ResponseField name="combine_mode" type="string">
+  How rules are combined: `"ALL"` (every rule must pass) or `"ANY"` (at least one must pass)
+</ResponseField>
+
+<ResponseField name="check_interval_seconds" type="number">
+  How often the scheduler checks conditions (in seconds)
+</ResponseField>
+
+<ResponseField name="rules" type="array">
+  List of scheduler rules
+</ResponseField>
+
+<ResponseField name="conditions_met" type="boolean">
+  Whether the current system conditions satisfy all rules
+</ResponseField>
+
+```json 200 Success
+{
+  "enabled": true,
+  "combine_mode": "ALL",
+  "check_interval_seconds": 30,
+  "rules": [
+    {
+      "rule": "battery_level",
+      "operator": ">=",
+      "value": 20,
+      "enabled": true
+    },
+    {
+      "rule": "power_source",
+      "operator": "==",
+      "value": true,
+      "enabled": true
+    }
+  ],
+  "conditions_met": true
+}
+```
+
+---
+
+## Update Scheduler Config
+
+**`PUT /api/queue/scheduler`**
+
+Update scheduler configuration. All fields are optional; only provided fields are updated.
+
+```bash cURL
+curl -X PUT http://localhost:60534/api/queue/scheduler \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "combine_mode": "ALL",
+    "check_interval_seconds": 60,
+    "rules": [
+      {"rule": "battery_level", "operator": ">=", "value": 30, "enabled": true},
+      {"rule": "cpu_percent", "operator": "<=", "value": 80, "enabled": true}
+    ]
+  }'
+```
+
+### Available Rule Types
+
+| Rule | Description | Operators | Value Type |
+|------|-------------|-----------|------------|
+| `battery_level` | Battery percentage (0-100) | `>=`, `<=`, `>`, `<`, `==` | number |
+| `power_source` | Whether plugged in | `==` | boolean |
+| `cpu_idle` | Seconds since CPU was idle | `>=` | number |
+| `cpu_percent` | Current CPU usage percentage | `<=`, `>=` | number |
+| `cpu_temperature` | CPU temperature in Celsius | `<=` | number |
+| `fan_speed` | Fan speed in RPM | `<=` | number |
+| `time_window` | Time-of-day window | `in` | string (`"HH:MM-HH:MM"`) |
+
+### Combine Modes
+
+- **`ALL`**: All enabled rules must pass for the queue to run (AND logic)
+- **`ANY`**: At least one enabled rule must pass (OR logic)
